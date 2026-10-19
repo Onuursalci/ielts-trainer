@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IELTS Trainer — Test Records</title>
+  <link rel="stylesheet" href="assets/css/app.css">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+</head>
+<body data-page="records">
+  <header id="hdr" class="site-header"></header>
+  <div class="container"><nav class="app-nav" id="nav" aria-label="Main"></nav></div>
+
+  <main class="container">
+    <div class="page-head">
+      <div>
+        <h1 class="st2d" data-i18n="records.title" style="margin:0"></h1>
+        <p class="sub" data-i18n="records.sub"></p>
+      </div>
+    </div>
+
+    <div id="recordsWrap"></div>
+  </main>
+
+  <footer id="footer" class="site-footer"></footer>
+
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/extra-listening.js"></script>
+  <script src="assets/js/extra-reading.js"></script>
+  <script src="assets/js/extra-writing.js"></script>
+  <script src="assets/js/extra-speaking.js"></script>
+  <script src="assets/js/extra-plan.js"></script>
+  <script src="assets/js/extra-listening2.js"></script>
+  <script src="assets/js/extra-listening3.js"></script>
+  <script src="assets/js/extra-listening4.js"></script>
+  <script src="assets/js/extra-reading2.js"></script>
+  <script src="assets/js/extra-reading3.js"></script>
+  <script src="assets/js/extra-reading4.js"></script>
+  <script src="assets/js/extra-writing2.js"></script>
+  <script src="assets/js/extra-writing3.js"></script>
+  <script src="assets/js/extra-speaking2.js"></script>
+  <script src="assets/js/extra-speaking3.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/profiles.js"></script>
+  <script>
+    (function () {
+      var A = window.APP;
+
+      function sectionByType(att, type) {
+        return (att.sections || []).find(function (s) { return s.type === type; });
+      }
+
+      function render() {
+        var wrap = A.qs("#recordsWrap");
+        var attempts = A.getAttempts();
+        if (!attempts.length) {
+          wrap.innerHTML = '<div class="empty">' + A.esc(A.t("records.empty")) +
+            '<div class="mt16"><a class="btn btn-blue" href="mock-tests.html">' + A.esc(A.t("result.backTests")) + "</a></div></div>";
+          return;
+        }
+        var overalls = attempts.map(function (a) { return a.overall; }).filter(function (v) { return v != null; });
+        var avg = overalls.length ? (overalls.reduce(function (a, b) { return a + b; }, 0) / overalls.length) : null;
+        var best = overalls.length ? Math.max.apply(null, overalls) : null;
+        var last = attempts[0];
+
+        var html = '<div class="stat-row">';
+        html += '<div class="stat"><div class="k">' + A.esc(A.t("records.statCount")) + '</div><div class="v">' + attempts.length + "</div></div>";
+        html += '<div class="stat"><div class="k">' + A.esc(A.t("records.statAvg")) + '</div><div class="v">' + (avg != null ? avg.toFixed(1) : "—") + "</div></div>";
+        html += '<div class="stat"><div class="k">' + A.esc(A.t("records.statBest")) + '</div><div class="v">' + (best != null ? best.toFixed(1) : "—") + "</div></div>";
+        html += '<div class="stat"><div class="k">' + A.esc(A.t("records.statLast")) + '</div><div class="v" style="font-size:1rem;font-weight:600">' + A.esc(A.fmtDate(last.date, true)) + "</div></div>";
+        html += "</div>";
+
+        var chartData = attempts.filter(function (a) { return a.overall != null; }).slice(0, 8).reverse();
+        if (chartData.length) {
+          html += '<div class="card card-pad mb24"><b class="b4m">' + A.esc(A.t("records.chartTitle")) + '</b><div class="barchart">';
+          chartData.forEach(function (a) {
+            var hPct = Math.max(6, Math.round(a.overall / 9 * 100));
+            html += '<div class="b"><b>' + a.overall.toFixed(1) + '</b><i style="height:' + hPct + '%"></i><span>' + A.esc(A.fmtDate(a.date)) + "</span></div>";
+          });
+          html += "</div></div>";
+        }
+
+        html += '<div class="card" style="overflow:auto"><table class="tbl"><thead><tr>';
+        html += "<th>" + A.esc(A.t("records.colDate")) + "</th>";
+        html += "<th>" + A.esc(A.t("records.colTest")) + "</th>";
+        html += '<th>L</th><th>R</th><th>W</th><th>S</th>';
+        html += "<th>" + A.esc(A.t("records.colOverall")) + "</th><th></th>";
+        html += "</tr></thead><tbody>";
+        attempts.forEach(function (a) {
+          var l = sectionByType(a, "listening"), r = sectionByType(a, "reading"), w = sectionByType(a, "writing"), s = sectionByType(a, "speaking");
+          function cell(x) { return x && x.scored ? x.band.toFixed(1) : "–"; }
+          html += "<tr>";
+          html += "<td>" + A.esc(A.fmtDate(a.date)) + "</td>";
+          html += "<td>" + A.esc(a.testName) + "</td>";
+          html += "<td>" + cell(l) + "</td><td>" + cell(r) + "</td>";
+          html += "<td>–</td><td>–</td>";
+          html += "<td><b>" + (a.overall != null ? a.overall.toFixed(1) : "–") + "</b></td>";
+          html += '<td><a class="btn btn-ghost btn-sm" href="result.html?attempt=' + a.id + '">' + A.esc(A.t("common.viewResult")) + "</a></td>";
+          html += "</tr>";
+        });
+        html += "</tbody></table></div>";
+        html += '<div class="mt16"><button class="btn btn-ghost" id="btnClear">' + A.esc(A.t("records.clearBtn")) + "</button></div>";
+
+        wrap.innerHTML = html;
+        var clearBtn = A.qs("#btnClear");
+        if (clearBtn) {
+          clearBtn.addEventListener("click", function () {
+            A.modal({
+              title: A.t("records.clearBtn"),
+              text: A.t("records.clearConfirm"),
+              cancelText: A.t("common.cancel"),
+              okText: A.t("common.clear"),
+              danger: true,
+              onOk: function () { A.clearAttempts(); render(); A.toast(A.t("toast.planSaved")); }
+            });
+          });
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", render);
+      document.addEventListener("langchange", render);
+    })();
+  </script>
+</body>
+</html>

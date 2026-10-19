@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IELTS Trainer — Study Center</title>
+  <link rel="stylesheet" href="assets/css/app.css">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+</head>
+<body data-page="study">
+  <header id="hdr" class="site-header"></header>
+  <div class="container"><nav class="app-nav" id="nav" aria-label="Main"></nav></div>
+
+  <main class="container">
+    <div class="page-head">
+      <div>
+        <h1 class="st2d" data-i18n="study.title" style="margin:0"></h1>
+        <p class="sub" data-i18n="study.sub"></p>
+      </div>
+      <div class="card card-pad" style="min-width:250px">
+        <div class="c2r g500" data-i18n="study.progressTitle"></div>
+        <div class="flex items-center gap8 mt8">
+          <b class="at1b" id="progText">0/0</b>
+          <span class="c1r g500" data-i18n="study.progressTotal"></span>
+        </div>
+        <div class="pbar mt8"><i id="progFill" style="width:0%"></i></div>
+      </div>
+    </div>
+
+    <div class="sc-top">
+      <div class="date-card">
+        <div>
+          <div class="lbl" data-i18n="study.testDateLbl"></div>
+          <div class="val" id="dateVal" data-i18n="study.testDateUnset"></div>
+        </div>
+        <div class="flex gap8 items-center wrap">
+          <input type="date" class="date-input" id="dateInput" aria-label="IELTS test date">
+          <button class="btn btn-black" id="dateSave" data-i18n="study.enterDate"></button>
+        </div>
+      </div>
+    </div>
+
+    <section class="section" id="format" style="margin-top:36px">
+      <div class="card card-pad">
+        <h2 class="st4d" data-i18n="study.formatTitle" style="margin:0 0 10px">Exam format at a glance</h2>
+        <div id="formatRows"></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2 class="st3d" data-i18n="study.todayTitle" style="margin:0"></h2>
+        <span class="chip chip-red" id="todayChip"></span>
+      </div>
+      <div class="today-panel" id="todayPanel" style="padding-top:14px"></div>
+    </section>
+
+    <section class="section">
+      <h2 class="st3d" data-i18n="study.planTitle" style="margin:0 0 6px"></h2>
+      <p class="section-desc" data-i18n="study.planSub" style="margin:0 0 24px"></p>
+      <div id="planWrap"></div>
+    </section>
+
+    <section class="section" id="phase2Wrap"></section>
+  </main>
+
+  <footer id="footer" class="site-footer"></footer>
+
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/extra-listening.js"></script>
+  <script src="assets/js/extra-reading.js"></script>
+  <script src="assets/js/extra-writing.js"></script>
+  <script src="assets/js/extra-speaking.js"></script>
+  <script src="assets/js/extra-plan.js"></script>
+  <script src="assets/js/extra-listening2.js"></script>
+  <script src="assets/js/extra-listening3.js"></script>
+  <script src="assets/js/extra-listening4.js"></script>
+  <script src="assets/js/extra-reading2.js"></script>
+  <script src="assets/js/extra-reading3.js"></script>
+  <script src="assets/js/extra-reading4.js"></script>
+  <script src="assets/js/extra-writing2.js"></script>
+  <script src="assets/js/extra-writing3.js"></script>
+  <script src="assets/js/extra-speaking2.js"></script>
+  <script src="assets/js/extra-speaking3.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/profiles.js"></script>
+  <script>
+    (function () {
+      var A = window.APP, D = window.APP_DATA;
+      var openWeeks = new Set();
+      var openDays = new Set();
+
+      function planStats() {
+        var total = 0;
+        D.PLAN.weeks.forEach(function (w) { w.days.forEach(function (d) { total += d.length; }); });
+        return { total: total };
+      }
+      function checks() { return A.getPlanChecks(); }
+      function taskId(w, d, i) { return "w" + w + "d" + d + "t" + i; }
+
+      function currentDay() {
+        var started = localStorage.getItem(A.LS.started) || A.todayISO();
+        var sd = new Date(started + "T09:00:00");
+        var now = new Date();
+        var a = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        var diff = Math.floor((a - sd) / 86400000) + 1;
+        return Math.min(Math.max(diff, 1), 56);
+      }
+
+      function renderProgress() {
+        var ch = checks();
+        var st = planStats();
+        A.qs("#progText").textContent = ch.size + "/" + st.total;
+        A.qs("#progFill").style.width = (st.total ? Math.round(ch.size / st.total * 100) : 0) + "%";
+      }
+
+      function renderDate() {
+        var val = A.getTestDate();
+        var left = A.daysUntil(val);
+        var el = A.qs("#dateVal");
+        el.removeAttribute("data-i18n");
+        if (!val) {
+          el.setAttribute("data-i18n", "study.testDateUnset");
+          el.textContent = A.t("study.testDateUnset");
+        } else {
+          el.textContent = A.fmtDate(val) + (left != null && left >= 0 ? " · " + left + " " + A.t("study.daysLeft") : "");
+        }
+        A.qs("#dateInput").value = val || "";
+      }
+
+      function renderFormat() {
+        A.qs("#formatRows").innerHTML = D.PLAN.examFacts.map(function (f) {
+          return '<div class="flex items-center justify-between wrap gap8" style="padding:9px 0;border-bottom:1px solid var(--gray100)">' +
+            '<b class="b3m" style="min-width:130px">' + A.esc(f.k) + '</b>' +
+            '<span class="b3r g600" style="flex:1;min-width:220px;text-align:right">' + A.esc(f.v) + '</span></div>';
+        }).join("");
+      }
+
+      function renderToday() {
+        var day = currentDay();
+        var w = Math.ceil(day / 7), d = ((day - 1) % 7) + 1;
+        var week = D.PLAN.weeks[w - 1];
+        var tasks = week.days[d - 1];
+        var ch = checks();
+        var done = 0;
+        var rows = tasks.map(function (t, i) {
+          var id = taskId(w, d, i);
+          var isDone = ch.has(id);
+          if (isDone) done++;
+          return '<div class="task">' +
+            '<input type="checkbox" class="ck" data-task="' + id + '"' + (isDone ? " checked" : "") + '>' +
+            '<label class="' + (isDone ? "done" : "") + '">' + A.esc(t[0]) + '</label>' +
+            (t[1] ? '<a class="link" href="' + t[1] + '">' + A.esc(A.t("common.start")) + ' →</a>' : "") +
+            '</div>';
+        }).join("");
+        A.qs("#todayChip").textContent = A.t("study.week") + " " + w + " · " + A.t("study.day") + " " + d;
+        A.qs("#todayPanel").innerHTML = rows +
+          '<div class="c2r g500" style="padding:10px 0 0 32px">' + done + "/" + tasks.length + " " + A.esc(A.t("study.tasksDone")) + "</div>";
+      }
+
+      function renderPlan() {
+        var ch = checks();
+        A.qs("#planWrap").innerHTML = D.PLAN.weeks.map(function (w) {
+          var total = 0, done = 0;
+          w.days.forEach(function (d, di) {
+            d.forEach(function (t, ti) {
+              total++;
+              if (ch.has(taskId(w.n, di + 1, ti))) done++;
+            });
+          });
+          var open = openWeeks.has(w.n) || (currentDay() >= (w.n - 1) * 7 + 1 && currentDay() <= w.n * 7 && !openWeeks.size);
+          var daysHtml = w.days.map(function (tasks, di) {
+            var dnum = di + 1;
+            var dTotal = tasks.length;
+            var dDone = 0;
+            var tasksHtml = tasks.map(function (t, ti) {
+              var id = taskId(w.n, dnum, ti);
+              var isDone = ch.has(id);
+              if (isDone) dDone++;
+              return '<div class="task">' +
+                '<input type="checkbox" class="ck" data-task="' + id + '"' + (isDone ? " checked" : "") + '>' +
+                '<label class="' + (isDone ? "done" : "") + '">' + A.esc(t[0]) + '</label>' +
+                (t[1] ? '<a class="link" href="' + t[1] + '">' + A.esc(A.t("common.start")) + ' →</a>' : "") +
+                '</div>';
+            }).join("");
+            var dOpen = openDays.has(w.n + "-" + dnum) || dnum === ((currentDay() - 1) % 7) + 1 && w.n === Math.ceil(currentDay() / 7) && !openDays.size;
+            return '<div class="day-row' + (dOpen ? " open" : "") + '" data-day="' + w.n + '-' + dnum + '">' +
+              '<div class="day-head">' +
+              '<span class="dnum">' + A.t("study.day") + " " + dnum + "</span>" +
+              '<span class="dprog">' + dDone + "/" + dTotal + "</span>" +
+              '<span style="margin-left:auto;color:var(--gray400)">' + A.ICONS.chev + "</span>" +
+              "</div>" +
+              '<div class="day-tasks">' + tasksHtml + "</div>" +
+              "</div>";
+          }).join("");
+          return '<div class="week-card' + (open ? " open" : "") + '" data-week="' + w.n + '">' +
+            '<div class="week-head">' +
+            '<div class="week-badge">W' + w.n + "</div>" +
+            '<div class="t"><h3>' + A.esc(w.theme) + "</h3><p>" + A.esc(w.desc) + "</p></div>" +
+            '<span class="c1r g500">' + done + "/" + total + "</span>" +
+            '<span style="color:var(--gray400)">' + A.ICONS.chev + "</span>" +
+            "</div>" +
+            '<div class="week-body">' + daysHtml + "</div>" +
+            "</div>";
+        }).join("");
+      }
+
+      /* I8: PLAN.phase2 — 8 haftanın devamı (görev/ilerleme sayacına DAHİL EDİLMEZ) */
+      function renderPhase2() {
+        var el = A.qs("#phase2Wrap");
+        var p2 = D.PLAN.phase2;
+        if (!p2) { el.innerHTML = ""; return; }
+        var html = '<h2 class="st3d" data-i18n="study.phase2Title" style="margin:0 0 6px"></h2>';
+        html += '<p class="section-desc" style="margin:0 0 24px">' + A.esc(p2.desc) + "</p>";
+        html += '<div class="phase2-grid">';
+        html += '<div class="card card-pad"><b class="b3m" data-i18n="study.phase2Rhythm" style="display:block;margin:0 0 6px"></b>';
+        p2.rhythm.forEach(function (r) {
+          html += '<div class="rhythm-row"><span class="rd">' + A.esc(r.day) + '</span><div class="rb"><b class="b4m">' + A.esc(r.focus) + '</b><p class="b3r g600" style="margin:2px 0 0">' + A.esc(r.detail) + "</p></div></div>";
+        });
+        html += "</div>";
+        html += '<div class="card card-pad"><b class="b3m" data-i18n="study.phase2Milestones" style="display:block;margin:0 0 6px"></b>';
+        p2.milestones.forEach(function (m, i) {
+          html += '<div class="ms-row"><span class="mi">' + (i + 1) + '</span><div class="rb"><b class="b4m">' + A.esc(m.label) + '</b><p class="b3r g600" style="margin:2px 0 0">' + A.esc(m.body) + "</p></div></div>";
+        });
+        html += "</div></div>";
+        html += '<div class="card card-pad mt16"><b class="b3m" data-i18n="study.phase2Rules" style="display:block"></b>';
+        html += '<ol class="b3r g600" style="margin:10px 0 0;padding-left:20px;line-height:1.9">';
+        p2.rules.forEach(function (r) { html += "<li style='margin-bottom:4px'>" + A.esc(r) + "</li>"; });
+        html += "</ol></div>";
+        el.innerHTML = html;
+      }
+
+      function renderAll() {
+        renderProgress(); renderDate(); renderFormat(); renderToday(); renderPlan(); renderPhase2();
+        A.applyI18n(document);
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        openWeeks.add(Math.ceil(currentDay() / 7));
+        renderAll();
+
+        A.qs("#dateSave").addEventListener("click", function () {
+          var v = A.qs("#dateInput").value;
+          A.saveTestDate(v);
+          renderDate();
+          A.toast(A.t("toast.dateSaved"));
+        });
+
+        document.addEventListener("change", function (e) {
+          var ck = e.target.closest("input.ck[data-task]");
+          if (!ck) return;
+          A.togglePlanCheck(ck.getAttribute("data-task"), ck.checked);
+          renderProgress();
+          var dayRow = ck.closest(".day-row");
+          if (dayRow) {
+            var inputs = A.qsa("input.ck", dayRow);
+            var done = inputs.filter(function (x) { return x.checked; }).length;
+            var prog = A.qs(".dprog", dayRow);
+            if (prog) prog.textContent = done + "/" + inputs.length;
+            var weekCard = dayRow.closest(".week-card");
+            if (weekCard) {
+              var allW = A.qsa("input.ck", weekCard);
+              var doneW = allW.filter(function (x) { return x.checked; }).length;
+              var wSpan = A.qs(".week-head .c1r", weekCard);
+              if (wSpan) wSpan.textContent = doneW + "/" + allW.length;
+            }
+          }
+          A.qsa('.task label').forEach(function (lb) { lb.classList.remove("done"); });
+          A.qsa('input.ck[data-task]:checked').forEach(function (x) {
+            var lb = x.nextElementSibling; if (lb && lb.tagName === "LABEL") lb.classList.add("done");
+          });
+          A.toast(A.t("toast.planSaved"));
+        });
+
+        document.addEventListener("click", function (e) {
+          var wh = e.target.closest(".week-head");
+          if (wh) {
+            var card = wh.parentElement;
+            var n = parseInt(card.getAttribute("data-week"), 10);
+            if (card.classList.toggle("open")) openWeeks.add(n); else openWeeks.delete(n);
+            return;
+          }
+          var dh = e.target.closest(".day-head");
+          if (dh) {
+            var row = dh.parentElement;
+            var key = row.getAttribute("data-day");
+            if (row.classList.toggle("open")) openDays.add(key); else openDays.delete(key);
+          }
+        });
+
+        document.addEventListener("langchange", renderAll);
+      });
+    })();
+  </script>
+</body>
+</html>

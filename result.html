@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IELTS Trainer — Score Report</title>
+  <link rel="stylesheet" href="assets/css/app.css">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+</head>
+<body data-page="mock">
+  <header id="hdr" class="site-header"></header>
+  <div class="container"><nav class="app-nav" id="nav" aria-label="Main"></nav></div>
+
+  <main class="container">
+    <div id="resWrap" style="margin-top:30px"></div>
+  </main>
+
+  <footer id="footer" class="site-footer"></footer>
+
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/extra-listening.js"></script>
+  <script src="assets/js/extra-reading.js"></script>
+  <script src="assets/js/extra-writing.js"></script>
+  <script src="assets/js/extra-speaking.js"></script>
+  <script src="assets/js/extra-plan.js"></script>
+  <script src="assets/js/extra-listening2.js"></script>
+  <script src="assets/js/extra-listening3.js"></script>
+  <script src="assets/js/extra-listening4.js"></script>
+  <script src="assets/js/extra-reading2.js"></script>
+  <script src="assets/js/extra-reading3.js"></script>
+  <script src="assets/js/extra-reading4.js"></script>
+  <script src="assets/js/extra-writing2.js"></script>
+  <script src="assets/js/extra-writing3.js"></script>
+  <script src="assets/js/extra-speaking2.js"></script>
+  <script src="assets/js/extra-speaking3.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/profiles.js"></script>
+  <script>
+    (function () {
+      var A = window.APP, D = window.APP_DATA;
+
+      function qTextForNotes(sec, n) {
+        var found = null;
+        (sec.groups || []).forEach(function (g) {
+          (g.lines || []).forEach(function (line) {
+            if (line.indexOf("{{" + n + "}}") >= 0) {
+              found = line.replace(/\{\{\d+\}\}/g, "＿＿");
+            }
+          });
+        });
+        return found;
+      }
+      function collectQs(sec) {
+        var out = [];
+        (sec.groups || []).forEach(function (g) {
+          (g.qs || []).forEach(function (q) {
+            out.push({ q: q, type: g.type || "notes", group: g });
+          });
+        });
+        return out;
+      }
+
+      function render() {
+        var wrap = A.qs("#resWrap");
+        var att = A.getAttempt(A.getParam("attempt"));
+        if (!att) {
+          wrap.innerHTML = '<div class="empty">' + A.esc(A.t("records.empty")) + '<div class="mt16"><a class="btn btn-ghost" href="mock-tests.html">' + A.esc(A.t("result.backTests")) + '</a></div></div>';
+          return;
+        }
+        var scored = att.sections.filter(function (s) { return s.scored; });
+        var overallTxt = att.overall != null ? att.overall.toFixed(1) : "—";
+
+        var html = '<div class="page-head" style="margin-top:0"><div><h1 class="st2d" style="margin:0">' + A.esc(A.t("result.title")) + "</h1>" +
+          '<p class="sub">' + A.esc(att.testName) + " · " + A.esc(A.fmtDate(att.date, true)) + "</p></div></div>";
+
+        html += '<div class="band-hero">';
+        html += '<div class="band-big"><div class="num">' + overallTxt + '</div><div class="lbl">' + A.esc(A.t("result.overall")) + "</div></div>";
+        html += '<div class="band-bars">';
+        att.sections.forEach(function (s) {
+          if (s.scored) {
+            var pct = Math.max(2, Math.round(s.band / 9 * 100));
+            html += '<div class="bbar"><span class="b4m">' + A.esc(s.label) + '</span><div class="track"><div class="fill" style="width:' + pct + '%"></div></div><span class="val">' + s.band.toFixed(1) + "</span></div>";
+          } else {
+            html += '<div class="bbar"><span class="b4m">' + A.esc(s.label) + '</span><div class="track" style="opacity:.35"></div><span class="c1r g500">' + A.esc(A.t("result.notScored")) + "</span></div>";
+          }
+        });
+        html += "</div></div>";
+
+        html += '<div class="flex gap8 wrap mb24">';
+        html += '<span class="chip chip-gray">' + A.esc(A.t("result.timeUsed")) + ": " + A.fmtClock(att.durationSec || 0) + "</span>";
+        scored.forEach(function (s) {
+          html += '<span class="chip chip-gray">' + A.esc(s.label) + ": " + A.t("result.correctOf", { a: s.correct, b: s.total }) + "</span>";
+        });
+        html += '<span class="chip chip-green">' + A.esc(A.t("result.saved")) + "</span>";
+        html += "</div>";
+        html += '<p class="c1r g500" style="margin:-10px 0 24px">' + A.esc(A.t("result.estimatedNote")) + "</p>";
+
+        // I6: sonraki adımlar aksiyon satırı
+        html += '<div class="next-steps card card-pad">';
+        html += '<b class="st4d" style="display:block;font-size:1.0625rem">' + A.esc(A.t("result.nextTitle")) + "</b>";
+        html += '<div class="flex gap8 wrap mt12">';
+        if (scored.length) {
+          html += '<button type="button" class="btn btn-ghost" data-scroll="#reviewStart">' + A.esc(A.t("result.nextReview")) + "</button>";
+          var weakest = scored.slice().sort(function (a, b) { return a.band - b.band; })[0];
+          html += '<a class="btn btn-blue" href="test.html?id=' + encodeURIComponent(weakest.key) + '">' + A.esc(A.t("result.nextWeakest")) + " · " + A.esc(weakest.label) + "</a>";
+        }
+        html += '<a class="btn btn-black" href="test.html?id=' + encodeURIComponent(att.testId) + '">' + A.esc(A.t("result.retake")) + "</a>";
+        html += '<a class="btn btn-ghost" href="study-center.html">' + A.esc(A.t("result.nextPlan")) + "</a>";
+        html += "</div></div>";
+
+        // inceleme
+        if (scored.length) {
+          html += '<h2 class="st3d" id="reviewStart" style="margin:0 0 16px;scroll-margin-top:90px">' + A.esc(A.t("result.reviewTitle")) + "</h2>";
+          scored.forEach(function (s) {
+            var sec = D.SECTIONS[s.key];
+            if (!sec) return;
+            html += '<h3 class="st4d" style="margin:20px 0 10px">' + A.esc(s.label) + " · " + A.t("result.correctOf", { a: s.correct, b: s.total }) + "</h3>";
+            collectQs(sec).forEach(function (item) {
+              var q = item.q;
+              var user = (s.answers || {})[q.n] || "";
+              var ok = A.checkAnswer(user, q);
+              var text = item.type === "notes" ? qTextForNotes(sec, q.n) : String(q.text || "").replace(/\{\{\d+\}\}/g, "＿＿");
+              var correctTxt = (q.answer || []).slice(0, 2).join(" / ");
+              if (item.type === "mcq" && q.options && q.options[q.answer[0]]) {
+                correctTxt = q.answer[0] + " — " + q.options[q.answer[0]];
+              }
+              html += '<div class="review-item"><div class="top">';
+              html += '<span class="qnum">' + q.n + "</span>";
+              html += '<span class="qtext" style="flex:1;font-size:.9375rem">' + A.esc(text || "") + "</span>";
+              html += '<span class="ans-badge ' + (ok ? "ok" : "no") + '">' + (user ? A.esc(user) : A.esc(A.t("result.notAnswered"))) + "</span>";
+              html += "</div>";
+              if (!ok) {
+                html += '<p class="c1r g500" style="margin:8px 0 0"><b>' + A.esc(A.t("result.correctAnswer")) + ":</b> " + A.esc(correctTxt) + "</p>";
+              }
+              if (q.explain) {
+                html += '<p class="exp"><b>' + A.esc(A.t("result.explanation")) + ":</b> " + A.esc(q.explain) + "</p>";
+              }
+              html += "</div>";
+            });
+          });
+        }
+
+        // yazma bölümü
+        att.sections.forEach(function (s) {
+          if (s.type !== "writing") return;
+          var sec = D.SECTIONS[s.key];
+          html += '<h2 class="st4d" style="margin:28px 0 6px">' + A.esc(A.t("practice.tabWriting")) + '</h2>';
+          html += '<p class="c1r g600" style="margin:0 0 12px">' + A.esc(A.t("result.writingNote")) + "</p>";
+          (sec ? sec.tasks : []).forEach(function (tk) {
+            var txt = (s.texts || {})[tk.id] || "";
+            var words = txt.trim() ? txt.trim().split(/\s+/).length : 0;
+            html += '<div class="card card-pad" style="margin-bottom:12px">';
+            html += '<div class="flex items-center justify-between wrap gap8"><b>' + A.esc(tk.label) + "</b>";
+            html += '<span class="chip ' + (words >= tk.minWords ? "chip-green" : "chip-gray") + '">' + words + " " + A.esc(A.t("player.wordCount")) + "</span></div>";
+            html += '<p class="c1r g500" style="margin:6px 0 4px">' + A.esc(tk.prompt) + "</p>";
+            if (words) {
+              html += '<details><summary class="b4m" style="cursor:pointer;color:var(--blue700)">' + A.esc(A.t("result.yourText")) + '</summary><div class="b3r g600" style="white-space:pre-wrap;margin-top:8px">' + A.esc(txt) + "</div></details>";
+            }
+            html += '<div class="mt12"><button class="btn btn-ghost btn-sm" data-model="' + s.key + "-" + tk.id + '">' + A.esc(A.t("result.modelShow")) + "</button>";
+            html += '<div class="model-answer" data-modelbox="' + s.key + "-" + tk.id + '"><div class="b4m g600 mb8">' + A.esc(A.t("result.modelAnswer")) + '</div><div class="b3r" style="white-space:pre-wrap">' + A.esc(tk.model || "") + "</div></div></div>";
+            html += "</div>";
+          });
+        });
+
+        // konuşma bölümü
+        att.sections.forEach(function (s) {
+          if (s.type !== "speaking") return;
+          var sec = D.SECTIONS[s.key];
+          html += '<h2 class="st4d" style="margin:28px 0 6px">' + A.esc(A.t("practice.tabSpeaking")) + '</h2>';
+          html += '<p class="c1r g600" style="margin:0">' + A.esc(A.t("result.speakingNote")) + "</p>";
+          if (sec && sec.extraCueCards) {
+            html += '<div class="b3r g600 mt8" style="line-height:1.9">';
+            sec.extraCueCards.slice(0, 4).forEach(function (c, i) { html += "<div>• " + A.esc(c) + "</div>"; });
+            html += "</div>";
+          }
+        });
+
+        html += '<div class="flex gap8 wrap mt32">';
+        html += '<a class="btn btn-black" href="mock-tests.html">' + A.esc(A.t("result.backTests")) + "</a>";
+        html += '<a class="btn btn-blue" href="test.html?id=' + encodeURIComponent(att.testId) + '">' + A.esc(A.t("result.retake")) + "</a>";
+        html += '<a class="btn btn-ghost" href="records.html">' + A.esc(A.t("result.goRecords")) + "</a>";
+        html += "</div>";
+
+        wrap.innerHTML = html;
+        A.qsa("[data-model]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var box = A.qs('[data-modelbox="' + btn.getAttribute("data-model") + '"]');
+            if (!box) return;
+            var open = box.classList.toggle("open");
+            btn.textContent = open ? A.t("result.modelHide") : A.t("result.modelShow");
+          });
+        });
+        A.qsa("[data-scroll]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var el = A.qs(btn.getAttribute("data-scroll"));
+            if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+        });
+      }
+
+      document.addEventListener("DOMContentLoaded", render);
+      document.addEventListener("langchange", render);
+    })();
+  </script>
+</body>
+</html>

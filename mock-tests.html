@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IELTS Trainer — Mock Tests</title>
+  <link rel="stylesheet" href="assets/css/app.css">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+</head>
+<body data-page="mock">
+  <header id="hdr" class="site-header"></header>
+  <div class="container"><nav class="app-nav" id="nav" aria-label="Main"></nav></div>
+
+  <main class="container">
+    <div class="page-head">
+      <div>
+        <h1 class="st2d" data-i18n="mock.title" style="margin:0"></h1>
+        <p class="sub" data-i18n="mock.sub"></p>
+      </div>
+    </div>
+
+    <div id="resumeBox"></div>
+
+    <ul class="mock-grid" id="mockGrid"></ul>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2 class="st3d" data-i18n="mock.sectionalTitle" style="margin:0"></h2>
+          <p class="section-desc" data-i18n="mock.sectionalSub" style="margin-top:6px"></p>
+        </div>
+      </div>
+      <div class="materials" id="sectionalGrid"></div>
+    </section>
+  </main>
+
+  <footer id="footer" class="site-footer"></footer>
+
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/extra-listening.js"></script>
+  <script src="assets/js/extra-reading.js"></script>
+  <script src="assets/js/extra-writing.js"></script>
+  <script src="assets/js/extra-speaking.js"></script>
+  <script src="assets/js/extra-plan.js"></script>
+  <script src="assets/js/extra-listening2.js"></script>
+  <script src="assets/js/extra-listening3.js"></script>
+  <script src="assets/js/extra-listening4.js"></script>
+  <script src="assets/js/extra-reading2.js"></script>
+  <script src="assets/js/extra-reading3.js"></script>
+  <script src="assets/js/extra-reading4.js"></script>
+  <script src="assets/js/extra-writing2.js"></script>
+  <script src="assets/js/extra-writing3.js"></script>
+  <script src="assets/js/extra-speaking2.js"></script>
+  <script src="assets/js/extra-speaking3.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/profiles.js"></script>
+  <script>
+    (function () {
+      var D = window.APP_DATA, A = window.APP;
+
+      function renderMocks() {
+        var grid = A.qs("#mockGrid");
+        grid.innerHTML = D.MOCKS.map(function (m) {
+          var ready = m.status === "ready";
+          var inner =
+            '<h2>' + A.esc(m.name) + '</h2>' +
+            '<div class="badges">' +
+            (ready
+              ? '<span class="chip">' + A.ICONS.bolt + ' ' + A.esc(A.t("mock.gradeFast")) + '</span>'
+              : '') +
+            '</div>' +
+            '<div class="mascot">' + m.emoji + '</div>' +
+            '<div class="bottom-bar">' +
+            '<span class="row">' + A.esc(m.desc) + '</span>' +
+            '<span class="row g600">' + A.esc(m.meta) + '</span>' +
+            '</div>' +
+            (ready ? '' : '<div class="coming-overlay">' + A.esc(A.t("common.comingSoon")) + '</div>');
+          return '<li class="mock-item">' + (ready
+            ? '<a class="mock-card" style="background:' + m.color + '" href="test.html?id=' + m.id + '">' + inner + '</a>'
+            : '<div class="mock-card is-soon" style="background:' + m.color + '" aria-disabled="true">' + inner + '</div>') + '</li>';
+        }).join("");
+      }
+
+      /* M1: kayıt tamamen boşsa (cevap/bayrak/vurgu/yazma/bölüm yok) kutuyu gösterme */
+      function hasResumeContent(sv) {
+        if (!sv) return false;
+        if (sv.answers && Object.keys(sv.answers).some(function (k) { return String(sv.answers[k] == null ? "" : sv.answers[k]).trim().length; })) return true;
+        if (sv.flags && Object.keys(sv.flags).some(function (k) { return !!sv.flags[k]; })) return true;
+        if (sv.highlights && Object.keys(sv.highlights).some(function (k) { return (sv.highlights[k] || []).length; })) return true;
+        if (sv.writing && Object.keys(sv.writing).some(function (k) { var sec = sv.writing[k] || {}; return Object.keys(sec).some(function (t) { return String(sec[t] || "").trim().length; }); })) return true;
+        if (sv.doneSections && Object.keys(sv.doneSections).length) return true;
+        return false;
+      }
+      function renderResume() {
+        var box = A.qs("#resumeBox");
+        var ids = A.allProgressIds().filter(function (id) {
+          if (!D.MOCKS.some(function (m) { return m.id === id; })) return false;
+          return hasResumeContent(A.loadProgress(id));
+        });
+        if (!ids.length) { box.innerHTML = ""; return; }
+        box.innerHTML = ids.map(function (id) {
+          var m = D.MOCKS.find(function (x) { return x.id === id; });
+          return '<div class="card card-pad flex items-center justify-between wrap gap12" style="margin:0 0 20px">' +
+            '<div><b>' + A.esc(A.t("mock.resumeTitle")) + '</b>' +
+            '<p class="c1r g600" style="margin:2px 0 0">' + A.esc(m.name) + ' · ' + A.esc(A.t("mock.resumeText")) + '</p></div>' +
+            '<div class="flex gap8">' +
+            '<a class="btn btn-blue" href="test.html?id=' + id + '">' + A.esc(A.t("mock.resumeYes")) + '</a>' +
+            '<button class="btn btn-ghost" data-discard="' + id + '">' + A.esc(A.t("mock.resumeNo")) + '</button>' +
+            '</div></div>';
+        }).join("");
+        A.qsa("[data-discard]", box).forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            A.clearProgress(btn.getAttribute("data-discard"));
+            renderResume();
+            A.toast(A.t("toast.planSaved"));
+          });
+        });
+      }
+
+      function renderSectionals() {
+        var wrap = A.qs("#sectionalGrid");
+        wrap.innerHTML = D.SECTIONALS.map(function (s) {
+          return '<div class="mat-card hoverable">' +
+            '<div class="flex items-center justify-between">' +
+            '<div class="ic">' + s.emoji + '</div>' +
+            '<a class="btn btn-black btn-sm" href="test.html?id=' + s.section + '">' + A.esc(A.t("common.start")) + '</a>' +
+            '</div>' +
+            '<h3>' + A.esc(s.title) + '</h3>' +
+            '<p>' + A.esc(s.sub) + '</p>' +
+            '</div>';
+        }).join("");
+      }
+
+      function renderAll() { renderMocks(); renderResume(); renderSectionals(); A.applyI18n(document); }
+      document.addEventListener("DOMContentLoaded", renderAll);
+      document.addEventListener("langchange", renderAll);
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# Ajan geçici dosyaları (siteye dahil değil)
+Temp/
+*.log
+.DS_Store
+
+# Kişisel çalışma notu — repoda yayınlanmaz
+ielts-analiz.md
